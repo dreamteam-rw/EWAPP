@@ -1,0 +1,569 @@
+﻿Version=5.02
+NumberOfModules=3
+Module1=scale
+Module2=ListAlerts
+Module3=FeedBack
+Build1=Default,com.rootsoft.ewap
+ManifestCode=
+IconFile=
+NumberOfFiles=17
+File1=alert.png
+File2=autofalante.png
+File3=back.jpg
+File4=back-button.png
+File5=curl
+File6=FeedBack.bal
+File7=getlocation.bal
+File8=if_weather_16_2682835.png
+File9=if_weather_2_2682849.png
+File10=if_weather_3_2682848.png
+File11=import-button.jpg
+File12=ListAlerts.bal
+File13=open.png
+File14=save-sign.png
+File15=seal.jpg
+File16=sun.png
+File17=weather_4-128.png
+NumberOfLibraries=9
+Library1=core
+Library2=locationmanager
+Library3=gps
+Library4=stringutils
+Library5=phone
+Library6=httputils2
+Library7=http
+Library8=json
+Library9=randomaccessfile
+@EndOfDesignText@
+#Region Module Attributes
+	#FullScreen: False
+	#IncludeTitle: True
+	#ApplicationLabel: EWAP
+	#VersionCode: 1
+	#VersionName: 
+	#SupportedOrientations: unspecified
+	#CanInstallToExternalStorage: False
+#End Region
+
+#AdditionalJar: mysql-connector-java-5.1.27
+'Activity module
+Sub Process_Globals
+
+	'These global variables will be declared once when the application starts.
+	'These variables can be accessed from all modules.
+	Dim GPS1 As GPS
+	Dim checkgps As Timer         
+    Dim Splashtimer As Timer
+
+	'The forecast array
+	Dim array_dis(31) As fore
+	
+	
+	' The sms list will contain only 3 for the prototype
+	' The final product  should produce an array for this one
+	Public sms1 As String
+	Public sms1_date As String
+	Public sms1_id As Int
+    Public sms1_dis As Int 	
+	
+	Public sms2 As String
+	Public sms2_date As String
+	Public sms2_id As Int
+    Public sms2_dis As Int 	
+	
+	Public sms3 As String
+	Public sms3_date As String
+	Public sms3_id As Int
+    Public sms3_dis As Int 	
+	
+	'The type of the live  forecast array
+	Type fore(id As Int, morning As Int , adternoon As Int,evening As Int ,Mx As Int ,Mn As Int)
+	
+	'Predefined images for the forecast	 
+	Dim sol,chuva,nublado,noitelimpa As Bitmap
+	
+	
+End Sub
+
+Sub sec
+
+Dim ph As Phone
+Dim StdOut As StringBuilder
+Dim StdErr As StringBuilder
+
+
+
+'Get all data via curl binary 
+'The final product should be using http service to fetch data from server
+'First, fetch the forecast stored on the database
+StdErr.Initialize
+StdOut.Initialize
+ph.Shell("/data/data/com.rootsoft.ewap/files/bin/curl http://node2.oneacrefund.org/selects/php-select-temp.php",Null,StdOut,StdErr)
+ 
+ 
+ 'As the test is not fully popoulated, let´s initialize all those districts that are in not the database with some default data
+  For i=0 To 30
+	 array_dis(i).adternoon=1
+ 	 array_dis(i).evening=2
+	 array_dis(i).morning=1
+	 array_dis(i).Mn=8
+	 array_dis(i).Mx=22
+ Next
+ 
+ 
+ 'Read the JSON from those district that are stored in the database and assign to the live array 
+  Dim parser As JSONParser
+	parser.Initialize(StdOut.ToString)
+	Dim root As List = parser.NextArray
+	For Each colroot As Map In root
+		i=colroot.Get("district_id")
+		array_dis(i).morning=colroot.Get("morning")
+		array_dis(i).evening=colroot.Get("evening")
+		array_dis(i).adternoon=colroot.Get("afternoon")
+		array_dis(i).Mn=colroot.Get("min_temp")
+		array_dis(i).Mx=colroot.Get("max_temp")
+	Next
+  
+ 
+ StdOut.Initialize
+ 
+ ' Fill up the list box of the sms alerts sent by MIDIMAR
+ ' For the prototype, we are going to select the 3 most recent ones 
+ ' In case there are not even 3, some standard data is filled up
+ ph.Shell("/data/data/com.rootsoft.ewap/files/bin/curl http://node2.oneacrefund.org/selects/php-select-sms2.php",Null,StdOut,StdErr) 
+    
+    parser.Initialize(StdOut.ToString)
+	root = parser.NextArray
+		
+	Dim colroot_1 As Map = root.Get(0)
+	sms1_dis=colroot_1.Get("sector_id")
+	sms1=colroot_1.Get("messagebody")
+	sms1_date=colroot_1.Get("date")
+	sms1_id=colroot_1.Get("sms_id")
+	
+	Dim colroot_2 As Map = root.Get(1)
+	sms2_dis=colroot_2.Get("sector_id")
+	sms2=colroot_2.Get("messagebody")
+	sms2_date=colroot_2.Get("date")
+	sms2_id=colroot_2.Get("sms_id")
+	
+	Dim colroot_3 As Map = root.Get(2)
+	sms3_dis=colroot_3.Get("sector_id")
+	sms3=colroot_3.Get("messagebody")
+	sms3_date=colroot_3.Get("date")
+	sms3_id=colroot_3.Get("sms_id")
+		
+  
+End Sub
+
+	Sub Globals
+		'These global variables will be redeclared each time the activity is created.
+		'These variables can only be accessed from this module.
+		
+		'All graphical elements are defined here
+		'This is automatically done by "Generate Members" feature
+		
+		Dim lm As LocationManager
+		Dim lblLon As Label
+		Dim lblLat As Label
+		Dim lblSpeed As Label
+	    Public districts As List
+		
+	    Dim indice As Int
+		
+		Private Spinner1 As Spinner
+		
+		Private Panel1 As Panel
+		Private Panel2 As Panel 
+		Private ImageView1 As ImageView
+		Private ImageView2 As ImageView
+		Private Label2 As Label
+		Private Label1 As Label
+		Private Label3 As Label
+		Private Label4 As Label
+		Private Label5 As Label
+		Private Label6 As Label
+		Private Label7 As Label
+		Private Label8 As Label
+		Private ListView1 As ListView
+		Dim ImageView3 As ImageView
+		Dim ImageView4 As ImageView
+		
+		
+	 
+	End Sub
+
+Sub Activity_Create(FirstTime As Boolean)
+	
+	'Call the main activity
+	Activity.LoadLayout("getlocation")
+	
+	'Define a phone variable for shell executions
+	Dim ph As Phone
+	Dim StdOut, StdErr As StringBuilder
+    StdErr.Initialize
+    StdOut.Initialize
+  
+    'Maximize on the screen size
+    Panel1.Width=100%x
+	Panel1.Height=100%y
+  
+  	'set the scale. May change according to the device
+    scale.SetRate(0.5)
+    
+   
+   
+   If FirstTime Then
+   
+   	'Copy files of forecast symbols 
+    sol.InitializeSample(File.DirAssets,"if_weather_3_2682848.png",128,128)
+	nublado.InitializeSample(File.DirAssets,"if_weather_2_2682849.png",128,128)
+	chuva.InitializeSample(File.DirAssets,"if_weather_16_2682835.png",128,128)
+	noitelimpa.InitializeSample(File.DirAssets,"weather_4-128.png",128,128)
+   
+    'Create binary internal directory
+    File.MakeDir(File.DirInternal,"/data/data/com.rootsoft.ewap/files")
+    File.MakeDir(File.DirInternal,"/data/data/com.rootsoft.ewap/files/bin/")
+    
+	'Timer for printing the intial logo
+	Splashtimer.Initialize("SplashTimer",3000) 
+    Splashtimer.Enabled = True
+    scale.ScaleView(ImageView1)
+	scale.ScaleView(Spinner1)
+	
+	'Start showing the Nyarugenge temparature
+	indice = 22
+	
+	'Hiden everything during the iniatilization
+	'Only showing the opening image
+	scale.ScaleAll(Panel1,True)
+	Panel2.Visible = False
+	Label1.Visible = False
+	Label2.Visible = False
+	Spinner1.Visible = False
+	ImageView1.Visible = True
+	Spinner1.Width=Panel1.Width-40
+	Spinner1.Left=20
+	districts.Initialize
+	'Define once the disctrict values in the array
+	districts.AddAll(Array As String ("Bugesera","Burera","Gakenke","Gasabo","Gatsibo","Gicumbi","Gisagara","Huye","Kamonyi","Karongi","Kayonza","Kicukiro","Kirehe","Muhanga","Musanze","Ngoma","Ngororero","Nyabihu","Nyagatare","Nyamagabe","Nyamasheke","Nyanza","Nyarugenge","Nyaruguru","Rubavu","Ruhango","Rulindo","Rusizi","Rutsiro","Rwamagana"))
+ 
+		If Spinner1.Width > 330dip Or Spinner1.Height > 220dip Then
+			Spinner1.Width=330dip
+			Spinner1.Height=220dip
+		End If
+		scale.HorizontalCenter(Spinner1)
+		scale.VerticalCenter(Spinner1)
+        Spinner1.AddAll(districts)
+		
+		Spinner1.SelectedIndex=22 
+		Label3.Text=Spinner1.GetItem(22)
+			
+   Else
+   
+   ' Start showing the main screen and its elements
+     Splashtimer.Enabled = True
+	 ImageView1.Visible = False 
+	 Panel2.Visible = True
+	
+	 Spinner1.Visible = True
+	 Label1.Visible = True
+	 Label2.Visible = True
+	 scale.ScaleAll(Panel1,True)
+     scale.ScaleAll(Panel1,True)
+	 scale.ScaleAll(Panel2,True)
+    End If
+   
+   'Fix the sizes and positions (Only valid for the prototype)
+   'Using a Camon C9 for this one
+   'Anything dynamic will need to be re-adpated   
+   position 
+   
+   'Copying operational files
+   If File.Exists(File.DirAssets, "curl") = True Then
+   			ph.Shell("mkdir /data/data/com.rootsoft.ewap/files/",Null,StdOut,StdErr)
+			ph.Shell("mkdir /data/data/com.rootsoft.ewap/files/bin",Null,StdOut,StdErr)
+			File.Copy(File.DirAssets, "curl", "/data/data/com.rootsoft.ewap/files/bin/", "curl") 'keep getting error 
+	End If
+
+	ph.Shell("chmod 777 /data/data/com.rootsoft.ewap/files/bin/curl",Null,StdOut,StdErr)
+    
+	'Initializes the GPS tracker
+	Log(StdOut)
+    Log(StdErr)
+	lm.Initialize("Location")
+	GPS1.Initialize("GPS")
+	GPS1.Start(0, 0)
+	lm.requestGPSLocation
+
+	Dim Location1 As Location
+	Location1.Initialize
+	
+   checkgps.Initialize("checkgps",6000)
+   checkgps.Enabled = False
+	
+	sec
+		
+End Sub
+
+Sub position
+
+'Very static and usable for CamonC9
+'The final product should have this portion of code completely changed 
+'and adpated to a dynamic resolution and size
+'This defines elements positions and sizes
+scale.SetRate(0.5)
+scale.SetTopAndBottom(Panel1,1,100%y)
+scale.SetLeftAndRight(Panel1,1,100%x)
+Panel2.Height=40%y
+Panel2.Width=80%x
+Panel2.Left=10%x
+Panel2.Left=40
+scale.HorizontalCenter(Spinner1)
+Spinner1.Top=4%y
+Spinner1.Height=8%y
+Label2.Height=200
+Label1.Height=200
+Label2.Left=20
+Label1.Left=Panel1.Width-Label1.Width-20
+Label1.Top=Panel1.Height-Label1.Height-200
+Label2.Top=Panel1.Height-Label2.Height-200
+Label1.Height=Label1.Width
+Label2.Height=Label2.Width
+ImageView2.Height=Panel2.Height/4
+ImageView3.Height=Panel2.Height/4
+ImageView4.Height=Panel2.Height/4
+
+ImageView2.Top=40
+ImageView3.Top=250
+ImageView4.Top=450
+Label6.Top=150
+Label7.Top=350
+Label8.Top=550
+ImageView2.Left=20
+ImageView3.Left=20
+ImageView4.Left=20
+Label6.Left=20
+Label7.Left=20
+Label8.Left=20
+'ImageView2.Width=Panel2.Width/2
+'ImageView2.Height=Label1.Width
+
+End Sub
+
+Sub SplashTimer_Tick
+   
+      
+	'Timer for showing the initial image	
+	Splashtimer.Enabled=False
+    ImageView1.RemoveView
+	ImageView1.Visible = False
+	Panel2.Visible = True
+	Spinner1.Visible = True
+	scale.ScaleAll(Panel1,True)
+    Label1.Visible=True
+	Label2.Visible=True
+
+End Sub
+
+Sub checkgps_tick
+   
+   Dim lat As String
+   Dim lon As String
+   Dim url As String
+   Dim ph As Phone 
+   Dim result As String
+   
+   Dim StdOut, StdErr As StringBuilder
+   StdErr.Initialize
+   StdOut.Initialize
+   
+   'Getting coordinates information
+   lat=lblLat.Text
+   lon=lblLon.Text 
+  
+   'In case the coordinates are too short
+   lat = lat &"0000000000"
+   lon = lon &"0000000000"
+  
+   
+   Dim pos1 As Int
+   Dim pos2 As Int
+   pos1=lat.LastIndexOf(".")
+   pos2=lon.LastIndexOf(".")
+   pos1=pos1+6
+   pos2=pos2+6
+
+   lat=lat.SubString2(0,pos1)
+   lon=lon.SubString2(0,pos2)    
+   
+   'Submiting a request for the GPS coordinates of the cell phonw
+   url="https://geocode.xyz/" & lat & "," & lon &"?geoit=xml"
+   
+   'Retrieve the exact district name 
+   Dim args() As String
+   args = Array As String ("-k","-s",url,"|","grep","staddress")
+   ph.Shell("/data/data/com.rootsoft.ewap/files/bin/curl",args,StdOut,StdErr)
+   result=StdOut.ToString
+   pos1=result.IndexOf("<staddress>")
+   pos2=result.IndexOf("</staddress>")
+   result=result.SubString2(pos1+11,pos2)
+         
+   'If the district has been changed, then try to update the forecast with the new disctrict
+   If result <> "" Then
+   
+   	Dim i As Int 
+   	i=FindPositionStr(result,districts,True)
+    'Msgbox(i,"") 
+   
+    If i <> indice Then
+	    LoadFor(i)
+    	indice=i 
+	End If
+   
+   End If
+      
+   
+   Log(StdOut)
+   Log(StdErr)
+       
+End Sub
+
+Sub FindPositionStr(Target As String, L As List, Higher As Boolean) As Int
+    'Simplre function to find an array of sring inside an array
+	Dim iMax,iMin,iMid As Int
+    iMax=L.Size-1
+    iMin=0
+    'Set up for first iteration
+    iMid=iMin+((iMax-iMin)/2)
+    Dim Val As String = L.get(iMid)
+
+    'Start
+    Do While iMin < iMax
+        '1st or second half
+        If Val.CompareTo(Target) < 0 Then
+            iMin=iMid+1
+        Else
+            iMax=iMid
+        End If
+        'Set pointer to half way for next iteration
+        iMid=iMin+((iMax-iMin)/2)
+        Val = L.get(iMid)
+    Loop
+
+    If Higher Then
+        If Target.CompareTo(Val) > 0 Then
+            Return -1
+        Else
+            Return iMid
+        End If
+    Else
+        If Val.CompareTo(Target) > 0 Then
+            Return iMid - 1
+        Else
+            Return iMid
+        End If
+    End If
+End Sub
+
+Sub Activity_Resume
+      
+End Sub
+
+Sub Activity_Pause (UserClosed As Boolean)
+
+End Sub
+
+Sub Location_LocationChanged (Longitude As Double, Latitude As Double, Altitude As Double, Accuracy As Float, Bearing As Float, Provider As String, Speed As Float, Time As Long) 
+	'If the GPS location changes, then it will update the latitude and longitude
+    lblLat.Text =Latitude
+    lblLon.Text =Longitude
+    lblSpeed.Text = $"Speed = $1.2{Speed} m/s "$
+    checkgps.Enabled = True
+End Sub
+
+Sub Location_ProviderDisabled (Provider As String)
+	'If no GPS provider is enable
+	Msgbox("Provider","Provider Disabled")
+End Sub
+
+Sub Location_ProviderEnabled (Provider As String)
+	'If GPS provider starts again 
+	Msgbox("Provider","Provider Enabled")
+End Sub
+
+Sub Location_StatusChanged (Provider As String, Status As Int)
+	'Warns when the status with provider changes
+	Msgbox("Provider: " & Provider & CRLF & "Status: " & Status,"Status Changed")
+End Sub
+
+Sub Spinner1_ItemClick (po As Int, Value As Object)
+	
+	'If the user select an item from the list
+	'Then the forecast is updated and the indice as well
+	indice=po
+	LoadFor(po)
+	
+End Sub
+
+Sub LoadFor(index As Int) 
+    
+	
+	'Load the forecast in case is needed
+	'This is done when a district is selected in the main box or when GPS changes location  	
+	Log(array_dis)
+	ToastMessageShow("Changing to..."& Spinner1.GetItem(index) &"",False) 
+    
+    Spinner1.SelectedIndex=index 
+	Label3.Text=districts.Get(index)
+	Label4.Text= "Min " & array_dis(index+1).Mn & " C"
+	Label5.Text= "Max " & array_dis(index+1).Mx & " C"
+	
+	
+	Select array_dis(index+1).adternoon
+	Case 1
+	 ImageView3.SetBackgroundImage(sol)
+	Case 2 
+	 ImageView3.SetBackgroundImage(nublado)
+	Case 3
+	 ImageView3.SetBackgroundImage(chuva)
+	End Select
+	
+	Select array_dis(index+1).evening
+	Case 1
+	 ImageView4.SetBackgroundImage(noitelimpa)
+	Case 2 
+	 ImageView4.SetBackgroundImage(noitelimpa)
+	Case 3
+	 ImageView4.SetBackgroundImage(noitelimpa)
+	End Select
+	
+	Select array_dis(index+1).morning
+	Case 1
+	 ImageView2.SetBackgroundImage(sol)
+	Case 2 
+	 ImageView2.SetBackgroundImage(nublado)
+	Case 3
+	 ImageView2.SetBackgroundImage(chuva)
+	End Select
+	
+	
+	
+	
+	
+
+End Sub
+
+Sub Label1_Click
+
+   'Open another screen (activity)  
+   StartActivity(ListAlerts) 
+   
+   
+   
+ End Sub
+ 
+Sub Label2_Click
+	'Open another screen (Activity)
+	StartActivity(FeedBack) 
+End Sub
