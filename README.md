@@ -1,2 +1,2 @@
-# EWAPP
+# EWAP Prototype
 Climate Early Warning (METEO-RWANDA AND MIDIMAR REACH THE PUBLIC)
