@@ -21,6 +21,9 @@ This repo store the prototype of DreamTeam, produced during the Early Climate Wa
   This is the dump of the database model. It is very incomplete since it is a sketch of what the final product should be.
   Some keys and relations must be reviewed.
 
+### USSD
+  Prototype to be used with the africastalking.com USSD platform
 
-
+### METEO_UI
+  This is the PHP component of the system and stands for the Web UI which holds the forum, alerts management, SMS interface, etc.
 
